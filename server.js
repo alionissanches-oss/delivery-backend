@@ -14,7 +14,13 @@ app.get("/", (req, res) => {
 
 app.post("/optimize", async (req, res) => {
   try {
-    const { addresses } = req.body;
+    const { startAddress, addresses } = req.body;
+
+    if (typeof startAddress !== "string" || !startAddress.trim()) {
+      return res.status(400).json({
+        error: "Debes enviar un punto de partida válido.",
+      });
+    }
 
     if (!Array.isArray(addresses) || addresses.length < 2) {
       return res.status(400).json({
@@ -22,12 +28,27 @@ app.post("/optimize", async (req, res) => {
       });
     }
 
-    const result = await optimizeRoute(addresses);
+    const cleanedAddresses = addresses
+      .filter((address) => typeof address === "string")
+      .map((address) => address.trim())
+      .filter((address) => address.length > 0);
+
+    if (cleanedAddresses.length < 2) {
+      return res.status(400).json({
+        error: "Debes enviar al menos 2 direcciones válidas.",
+      });
+    }
+
+    const result = await optimizeRoute(startAddress.trim(), cleanedAddresses);
     return res.json(result);
   } catch (error) {
     console.log("Optimize API error:", error);
+
     return res.status(500).json({
-      error: "No se pudo optimizar la ruta.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se pudo optimizar la ruta.",
     });
   }
 });

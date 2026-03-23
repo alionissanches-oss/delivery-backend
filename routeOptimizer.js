@@ -63,18 +63,33 @@ async function geocodeAddress(address) {
   };
 }
 
-async function optimizeRoute(addresses) {
+async function optimizeRoute(startAddress, addresses) {
+  if (typeof startAddress !== "string" || !startAddress.trim()) {
+    throw new Error("Debes enviar un punto de partida válido.");
+  }
+
   if (!Array.isArray(addresses) || addresses.length < 2) {
     throw new Error("Debes enviar al menos 2 direcciones.");
   }
 
-  const locations = await Promise.all(addresses.map(geocodeAddress));
+  const cleanStartAddress = startAddress.trim();
+  const cleanAddresses = addresses
+    .filter((address) => typeof address === "string")
+    .map((address) => address.trim())
+    .filter((address) => address.length > 0);
+
+  if (cleanAddresses.length < 2) {
+    throw new Error("Debes enviar al menos 2 direcciones válidas.");
+  }
+
+  const startLocation = await geocodeAddress(cleanStartAddress);
+  const locations = await Promise.all(cleanAddresses.map(geocodeAddress));
 
   const shipments = locations.map((latLng, index) => ({
     deliveries: [
       {
         arrivalLocation: latLng,
-        label: addresses[index],
+        label: cleanAddresses[index],
       },
     ],
   }));
@@ -84,8 +99,8 @@ async function optimizeRoute(addresses) {
       shipments,
       vehicles: [
         {
-          startLocation: locations[0],
-          endLocation: locations[0],
+          startLocation,
+          endLocation: startLocation,
           label: "vehiculo-1",
         },
       ],
