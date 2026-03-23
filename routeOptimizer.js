@@ -6,10 +6,28 @@ const fetchFn = (...args) =>
 const GOOGLE_API_KEY = "AIzaSyDBmOC5dK1kjjj6AGdFiHdgZHg-CaYXA-8";
 const PROJECT_ID = "delivery-app-490923";
 
-const auth = new GoogleAuth({
-  keyFile: "./service-account.json",
-  scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-});
+function createGoogleAuth() {
+  const rawServiceAccount = process.env.GOOGLE_SERVICE_ACCOUNT;
+
+  if (!rawServiceAccount || !rawServiceAccount.trim()) {
+    throw new Error("Falta la variable GOOGLE_SERVICE_ACCOUNT en Render.");
+  }
+
+  let parsedCredentials;
+
+  try {
+    parsedCredentials = JSON.parse(rawServiceAccount);
+  } catch (error) {
+    throw new Error("La variable GOOGLE_SERVICE_ACCOUNT no contiene un JSON válido.");
+  }
+
+  return new GoogleAuth({
+    credentials: parsedCredentials,
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+  });
+}
+
+const auth = createGoogleAuth();
 
 async function geocodeAddress(address) {
   const url =
